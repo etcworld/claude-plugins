@@ -11,6 +11,5 @@
   "license": "MIT",
   "keywords": ["task-management", "productivity", "session-continuity"],
   "commands": "./commands",
-  "skills": "./skills",
-  "templates": "./templates"
+  "skills": "./skills"
 }
