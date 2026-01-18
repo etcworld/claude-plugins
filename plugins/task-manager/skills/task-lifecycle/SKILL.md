@@ -1,7 +1,7 @@
 ---
 name: task-lifecycle
-version: 1.0.1
-description: Automatic task context detection, session continuity, and progress persistence
+version: 2.0.0
+description: Automatic task context detection, session continuity, and aggressive progress persistence
 triggers:
   - "continue"
   - "resume"
@@ -17,220 +17,338 @@ Automatically detects task-related context, provides session continuity, and ens
 
 ---
 
-## CRITICAL: Session-Safe Working Protocol
+## CRITICAL: Context Overflow Protection
 
-### Golden Rule
-**All progress MUST be written to `~/.claude/task-manager/tasks/` folder, NOT kept in memory.**
+### The Problem
+Claude's context window can fill up at ANY moment. When it does:
+- All conversation history is LOST
+- Any findings not written to disk are LOST
+- User must manually restore context
 
-When working on a task, Claude MUST:
-1. **Read context from disk** - Never rely on conversation history alone
-2. **Write progress to disk after each significant step** - Context can be cleared anytime
-3. **Update task.md before moving to next step** - Single source of truth
-4. **Store large context in `context/` folder** - Keep task.md focused
+### The Solution: Write-First Protocol
+**NEVER hold information only in memory. Write to disk FIRST, then continue.**
 
-### Progress Checkpoint Triggers
-
-Save progress to disk IMMEDIATELY after:
-- [ ] Completing any plan item
-- [ ] Finishing a subtask
-- [ ] Making an important decision
-- [ ] Discovering new information
-- [ ] Writing/modifying code
-- [ ] Before any potentially long operation
-- [ ] When user says "save", "kaydet", "checkpoint"
+```
+❌ WRONG: Analyze 5 files → Summarize findings → Write to disk
+✅ RIGHT: Analyze file 1 → Write finding → Analyze file 2 → Write finding → ...
+```
 
 ---
 
-## Active Task Working Mode
+## Aggressive Checkpoint Rules
 
-When a task is active (after `/task-manager:continue`), Claude operates in **Task Mode**:
+### Rule 1: Immediate Write (MOST IMPORTANT)
 
-### Task Mode Rules
+Write to disk IMMEDIATELY after:
 
-1. **Always know the active task**: Keep TASK-ID in working memory
-2. **Read before write**: Always read current task.md before making updates
-3. **Atomic progress updates**: Update task.md after each completed step
-4. **Use context/ for large data**: Code snippets, research, API responses go to context/
-5. **Use outputs/ for deliverables**: Final files, exports, results go to outputs/
+| Event | Write To | What to Write |
+|-------|----------|---------------|
+| Found something interesting | `context/research.md` | The finding + source |
+| Made a decision | `context/decisions.md` | Decision + rationale |
+| Read important code | `context/code-analysis.md` | Code snippet + analysis |
+| Completed any step | `task.md` | Progress note |
+| Got API/tool response | `context/` or `outputs/` | The response data |
 
-### Progress Update Format
+**No exceptions. No batching. No "I'll write it later".**
 
-After each significant step, update task.md:
+### Rule 2: Tool Call Cadence
+
+```
+Every 3 tool calls → Update task.md with current status
+Every 5 tool calls → Full checkpoint (task.md + all context files)
+```
+
+Example:
+```
+Tool 1: Read file A
+Tool 2: Read file B
+Tool 3: Read file C
+→ CHECKPOINT: Write findings to research.md, update task.md
+Tool 4: Grep for pattern
+Tool 5: Read file D
+→ FULL CHECKPOINT: Update all files
+```
+
+### Rule 3: Pre-Operation Save
+
+Before ANY potentially long operation:
+- Before running tests → Save current state
+- Before complex analysis → Save what you know
+- Before making changes → Save the plan
+- Before asking user → Save context
+
+### Rule 4: Structured Progress Notes
+
+Every checkpoint in task.md must include:
 
 ```markdown
-## İlerleme Notları
 ### YYYY-MM-DD HH:MM
-- [COMPLETED] <what was done>
-- [DECISION] <decision made and why>
-- [NEXT] <immediate next step>
-- [BLOCKER] <if any blockers exist>
+- [CONTEXT] What I currently know/understand
+- [COMPLETED] What was just done
+- [FINDING] Any discoveries (brief, details in context/)
+- [NEXT] Immediate next action
+- [STATE] Any important state (variables, decisions pending)
 ```
 
-### Plan Item Updates
+---
 
-When completing a plan item:
+## Write Templates
+
+### research.md - Append Format
 ```markdown
-## Plan
-1. [x] Initial analysis ✅ (completed: 2025-01-18)
-2. [x] Implementation ✅ (completed: 2025-01-18)
-3. [ ] Testing ← CURRENT
-4. [ ] Review
+---
+### YYYY-MM-DD HH:MM - <Topic>
+**Source:** <file path or URL>
+**Finding:** <what was discovered>
+**Relevance:** <why this matters for the task>
+**Details:**
+<detailed notes, code snippets, etc.>
+```
+
+### decisions.md - Append Format
+```markdown
+---
+### YYYY-MM-DD HH:MM - <Decision Title>
+**Context:** <what led to this decision>
+**Options Considered:**
+1. Option A - pros/cons
+2. Option B - pros/cons
+**Decision:** <what was decided>
+**Rationale:** <why>
+```
+
+### code-analysis.md - Append Format
+```markdown
+---
+### YYYY-MM-DD HH:MM - <File/Component>
+**Path:** <file path>
+**Purpose:** <what this code does>
+**Key Points:**
+- Point 1
+- Point 2
+**Relevant Code:**
+\`\`\`<language>
+<code snippet>
+\`\`\`
+**Notes:** <additional observations>
 ```
 
 ---
 
-## Context Folder Usage
+## Example: Correct Working Flow
 
-The `context/` folder stores session-independent information:
+### Task: "Analyze authentication system and propose improvements"
 
 ```
-~/.claude/task-manager/~/.claude/task-manager/tasks/active/TASK-XXX-slug/
-├── task.md              # Main task file (always up-to-date)
+1. Read task.md to understand current state
+
+2. Start analysis
+   → Read auth/login.go
+   → IMMEDIATELY write to research.md:
+     "### 2025-01-19 14:00 - Login Handler
+      Source: auth/login.go
+      Finding: Uses bcrypt for password hashing, no rate limiting
+      Relevance: Security concern - brute force possible"
+
+3. Continue analysis
+   → Read auth/middleware.go
+   → IMMEDIATELY write to research.md:
+     "### 2025-01-19 14:05 - Auth Middleware
+      Source: auth/middleware.go
+      Finding: JWT validation present, token expiry = 24h
+      Relevance: Token lifetime may be too long"
+
+4. After 3 files analyzed
+   → Update task.md:
+     "### 2025-01-19 14:10
+      - [CONTEXT] Analyzing authentication system
+      - [COMPLETED] Reviewed login.go, middleware.go, session.go
+      - [FINDING] No rate limiting, long token expiry (details in research.md)
+      - [NEXT] Review password reset flow
+      - [STATE] 3/7 auth files reviewed"
+
+5. Make a decision
+   → IMMEDIATELY write to decisions.md:
+     "### 2025-01-19 14:15 - Rate Limiting Approach
+      Context: No rate limiting found in login endpoint
+      Options: 1) Redis-based, 2) In-memory, 3) Middleware
+      Decision: Redis-based rate limiting
+      Rationale: Distributed system, need shared state"
+
+6. Continue...
+```
+
+---
+
+## Context File Management
+
+### Directory Structure
+```
+~/.claude/task-manager/tasks/active/TASK-XXX-slug/
+├── task.md                    # Status + progress notes (ALWAYS current)
 ├── context/
-│   ├── research.md      # Research notes, findings
-│   ├── decisions.md     # Decision log with rationale
-│   ├── code-snippets.md # Relevant code excerpts
-│   ├── api-responses/   # API response samples
-│   └── references/      # External references, docs
-├── sub~/.claude/task-manager/tasks/
-│   └── 001-*.md         # Individual subtask files
+│   ├── research.md            # All findings (append-only)
+│   ├── decisions.md           # All decisions (append-only)
+│   ├── code-analysis.md       # Code snippets + analysis
+│   ├── api-responses.md       # Important API responses
+│   └── scratch.md             # Temporary notes, working memory
+├── subtasks/
+│   └── XXX-*.md               # Subtask files
 └── outputs/
-    └── *                # Deliverable files
+    └── *                      # Deliverables
 ```
 
-### When to Write to Context
+### File Size Management
 
-- **research.md**: After investigating codebase, reading docs
-- **decisions.md**: After making architectural/design decisions
-- **code-snippets.md**: When analyzing specific code sections
-- Store files that would be expensive to regenerate
+If a context file gets large (>500 lines):
+1. Create date-based archive: `research-2025-01-19.md`
+2. Start fresh `research.md` with link to archive
+3. Keep most recent/relevant content in active file
 
 ---
 
-## Session Boundary Protocol
-
-### When Context is About to Fill
-
-Claude should proactively:
-1. Update task.md with current progress
-2. Write any in-memory context to context/ folder
-3. Mark current step clearly with `[IN_PROGRESS]`
-4. Add note: "Session may end soon, context saved to disk"
+## Session Recovery Protocol
 
 ### When New Session Starts
 
-On detecting a new session (or `/task-manager:continue`):
+1. **Detect active task**: Check `state.json` for in_progress tasks
+2. **Load context cascade**:
+   ```
+   task.md → Current status, plan, progress
+   context/research.md → Recent findings (last 50 lines)
+   context/decisions.md → Recent decisions (last 20 lines)
+   context/code-analysis.md → Recent analysis (last 30 lines)
+   subtasks/*.md → Subtask statuses
+   ```
+3. **Find resume point**: Look for `[NEXT]` or `[IN_PROGRESS]` marker
+4. **Present summary**: Show user what was loaded
+5. **Continue seamlessly**: Pick up exactly where left off
 
-1. **Scan active tasks**: `ls ~/.claude/task-manager/~/.claude/task-manager/tasks/active/`
-2. **Find most recent**: Check modification times
-3. **Read full context**:
-   - `task.md` for status and progress
-   - `context/*.md` for research and decisions
-   - `sub~/.claude/task-manager/tasks/*.md` for subtask states
-4. **Present resume point**
-5. **Continue from last `[IN_PROGRESS]` or `[NEXT]` marker**
-
----
-
-## Auto-Detection Triggers
-
-### English Triggers
-- "continue" - User wants to continue work
-- "resume" - User wants to resume a task
-- "what was I working on" - User asks about previous work
-- "last task" - User references the last task
-- "pick up where I left off" - Session continuity request
-
-### Turkish Triggers
-- "devam" - Continue
-- "kaldığım yer" - Where I left off
-- "son task" - Last task
-- "ne üzerinde çalışıyordum" - What was I working on
-
----
-
-## Session Recovery Flow
-
-When triggered:
+### Recovery Output Format
 
 ```markdown
-## Session Recovery
+## Session Recovered
 
-Reading from: ~/.claude/task-manager/~/.claude/task-manager/tasks/active/
+**Task:** TASK-XXX - <title>
+**Last Active:** YYYY-MM-DD HH:MM
 
-### Active Tasks Found
-| ID | Title | Status | Last Updated |
-|----|-------|--------|--------------|
-| TASK-007 | Feature Implementation | in_progress | 2025-01-18 14:30 |
+### Context Loaded
+- task.md: Status, progress notes
+- research.md: X findings loaded
+- decisions.md: Y decisions loaded
+- code-analysis.md: Z analyses loaded
 
-### TASK-007 Context Loaded
+### Current State
+<Last [CONTEXT] entry from task.md>
 
-**From task.md:**
-- Status: in_progress
-- Current Phase: Implementation
-- Last Progress: "Completed API endpoint, starting tests"
+### Resume Point
+<Last [NEXT] entry from task.md>
 
-**From context/:**
-- research.md: API documentation notes
-- decisions.md: Chose REST over GraphQL
+### Pending Items
+<Any [STATE] or incomplete items>
 
-**Resume Point:**
+---
+Continuing from: <specific action>
+```
+
+---
+
+## Checkpoint Triggers
+
+### Automatic (Claude MUST do these)
+- After every tool call that returns useful information
+- After every decision made
+- After completing any step
+- Before running tests or builds
+- Before any potentially long operation
+
+### User-Requested
+- "checkpoint" / "save" / "kaydet"
+- "save progress" / "ilerlemeyi kaydet"
+- "persist" / "write to disk"
+
+### Time-Based (if detectable)
+- Every 5 minutes of active work
+- Before responding to user (summarize what was done)
+
+---
+
+## Anti-Patterns to Avoid
+
+### ❌ DON'T: Batch Findings
+```
+Read 10 files, then write summary
+```
+
+### ✅ DO: Incremental Writes
+```
+Read file → Write finding → Read next file → Write finding
+```
+
+### ❌ DON'T: Keep State in Memory
+```
+"I'll remember that the auth uses JWT"
+```
+
+### ✅ DO: Write State to Disk
+```
+Write to research.md: "Auth system uses JWT with 24h expiry"
+```
+
+### ❌ DON'T: Summarize Later
+```
+"I found several issues, let me summarize at the end"
+```
+
+### ✅ DO: Write Each Issue Immediately
+```
+Found issue 1 → Write → Found issue 2 → Write → ...
+```
+
+### ❌ DON'T: Trust Conversation History
+```
+"As I mentioned earlier, the login handler..."
+```
+
+### ✅ DO: Reference Disk
+```
+"Per research.md entry from 14:00, the login handler..."
+```
+
+---
+
+## Emergency Recovery
+
+If context overflows mid-task:
+
+1. User runs `/task-manager:continue TASK-XXX`
+2. All context is restored from disk
+3. Claude finds `[NEXT]` marker
+4. Work continues seamlessly
+
+**This only works if Claude followed the Write-First Protocol!**
+
+---
+
+## Checkpoint Announcement
+
+After every checkpoint, inform user:
+
 ```markdown
-[NEXT] Write unit tests for UserController
+**Checkpoint** @ HH:MM - Progress saved to disk
+- Updated: task.md, research.md
+- Current: <brief status>
+- Next: <immediate next action>
 ```
 
-Would you like to continue from this point?
-```
+Keep it brief (2-3 lines) but always announce.
 
 ---
 
-## Checkpoint Command
+## Summary: The 5 Commandments
 
-User can explicitly request a checkpoint:
-
-```
-User: "checkpoint" / "save progress" / "kaydet"
-
-Claude Response:
-## Checkpoint Saved
-
-**Task:** TASK-007
-**Time:** 2025-01-18 15:30:00
-
-**Updated Files:**
-- ~/.claude/task-manager/~/.claude/task-manager/tasks/active/TASK-007-.../task.md
-  - Progress notes updated
-  - Plan items marked
-- ~/.claude/task-manager/~/.claude/task-manager/tasks/active/TASK-007-.../context/decisions.md
-  - New decision recorded
-
-**Current State:**
-- Completed: Items 1-3
-- In Progress: Item 4 (Testing)
-- Next: Write integration tests
-
-Context is now persisted. Safe to end session.
-```
-
----
-
-## Error Handling
-
-| Scenario | Action |
-|----------|--------|
-| No active tasks found | Suggest creating a new task |
-| ~/.claude/task-manager/tasks/ directory missing | Initialize task structure |
-| Corrupted task.md | Report error, offer to recreate from context/ |
-| Context lost | Rebuild from context/ folder files |
-| Subtask out of sync | Run `/task-manager:sync` |
-
----
-
-## Best Practices for Claude
-
-1. **Never trust memory alone** - Always verify against disk
-2. **Checkpoint frequently** - Better too often than too late
-3. **Keep task.md concise** - Move details to context/
-4. **Use clear markers** - `[COMPLETED]`, `[IN_PROGRESS]`, `[NEXT]`, `[BLOCKER]`
-5. **Timestamp everything** - Helps with session recovery
-6. **Announce saves** - Let user know when progress is persisted
+1. **Write First** - Never hold information only in memory
+2. **Write Often** - Every 3 tool calls minimum
+3. **Write Everything** - Findings, decisions, code, state
+4. **Write Immediately** - No batching, no "later"
+5. **Announce Writes** - User knows progress is safe
