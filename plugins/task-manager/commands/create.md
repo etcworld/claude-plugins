@@ -83,7 +83,7 @@ Extract: title, description, motivasyon, yaklaşım
 SLUG=$(echo "<TITLE>" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-')
 
 # Ensure plugin data directory exists
-mkdir -p ~/.claude/task-manager/tasks/{active,completed,cancelled,backlog,templates}
+mkdir -p ~/.claude/task-manager/tasks/{active,completed,cancelled,backlog}
 
 # Create task directory structure
 mkdir -p ~/.claude/task-manager/tasks/active/TASK-XXX-<SLUG>
