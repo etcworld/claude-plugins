@@ -17,7 +17,7 @@ This plugin provides a complete task management system that:
 claude plugin marketplace add etcworld/claude-plugins
 
 # Install plugin
-claude plugin install task-manager@etcworld/claude-plugins
+claude plugin install task-manager@etcworld-plugins
 ```
 
 ## Data Location

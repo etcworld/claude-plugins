@@ -20,7 +20,7 @@ claude plugin marketplace add etcworld/claude-plugins
 
 ```bash
 # Install task-manager
-claude plugin install task-manager@etcworld/claude-plugins
+claude plugin install task-manager@etcworld-plugins
 ```
 
 ## Plugin: task-manager
