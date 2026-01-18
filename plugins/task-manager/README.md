@@ -38,8 +38,10 @@ The plugin automatically creates the directory structure on first use.
 | `/task-manager:create` | Create a new task from title, Jira ticket, or idea |
 | `/task-manager:continue` | Resume work on an existing task |
 | `/task-manager:complete` | Complete a task with user approval and archive it |
+| `/task-manager:subtask` | Manage subtasks (add, list, done, status) |
 | `/task-manager:idea` | Quick capture an idea to backlog |
 | `/task-manager:sync` | Synchronize index with task folders |
+| `/task-manager:list` | List tasks and ideas |
 
 ## Skills
 
@@ -111,6 +113,24 @@ All data is stored in `~/.claude/task-manager/`:
 /task-manager:idea "Implement distributed tracing" --detailed --priority HIGH
 ```
 
+### Manage Subtasks
+
+```bash
+# Add subtasks to a task
+/task-manager:subtask add TASK-007 "Design database schema"
+/task-manager:subtask add TASK-007 "Implement CRUD operations"
+/task-manager:subtask add TASK-007 "Write unit tests"
+
+# List all subtasks
+/task-manager:subtask list TASK-007
+
+# Mark subtask as in progress
+/task-manager:subtask status TASK-007 001 in_progress
+
+# Mark subtask as done
+/task-manager:subtask done TASK-007 001
+```
+
 ### Complete a Task
 
 ```bash
@@ -140,6 +160,10 @@ All data is stored in `~/.claude/task-manager/`:
          ↓
 /task-manager:continue TASK-XXX           → Work on task
          ↓
+/task-manager:subtask add TASK-XXX "..."  → Break into subtasks (optional)
+         ↓
+/task-manager:subtask done TASK-XXX 001   → Track subtask progress
+         ↓
 /task-manager:complete TASK-XXX           → Archive completed task
 ```
 
@@ -166,6 +190,12 @@ All data is stored in `~/.claude/task-manager/`:
 ├── subtasks/         # Individual subtask tracking
 └── outputs/          # Deliverables
 ```
+
+### Subtask Management
+- Break large tasks into smaller, trackable units
+- Track progress per subtask (pending, in_progress, blocked, completed)
+- Auto-updates parent task when subtasks change
+- Subtask list shown in `/task-manager:continue` output
 
 ### Jira Integration
 - Import tasks directly from Jira tickets

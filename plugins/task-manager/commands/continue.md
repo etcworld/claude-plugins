@@ -165,6 +165,15 @@ Append to İlerleme Notları section:
 - Plan: X/Y items completed
 - Subtasks: A completed, B in progress, C pending
 
+### Subtasks (if any exist)
+| ID | Title | Status |
+|----|-------|--------|
+| 001 | <subtask title> | completed |
+| 002 | <subtask title> | in_progress |
+| 003 | <subtask title> | pending |
+
+**Next subtask:** 002 - <title>
+
 ### Resume Point
 <Next action to take based on Step 6 analysis>
 
@@ -173,6 +182,11 @@ Append to İlerleme Notları section:
 
 ---
 Ready to continue. What would you like to work on?
+
+**Subtask commands:**
+- `/task-manager:subtask add TASK-XXX "title"` - Add new subtask
+- `/task-manager:subtask done TASK-XXX 002` - Mark subtask done
+- `/task-manager:subtask list TASK-XXX` - List all subtasks
 ```
 
 ---
