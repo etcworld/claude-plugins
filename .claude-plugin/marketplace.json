@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "etcworld-plugins",
+  "owner": {
+    "name": "etcworld",
+    "email": "etcworld@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "task-manager",
+      "description": "AI task lifecycle management with session continuity",
+      "version": "1.0.0",
+      "author": {"name": "etcworld"},
+      "source": "./plugins/task-manager",
+      "category": "productivity"
+    }
+  ]
+}
