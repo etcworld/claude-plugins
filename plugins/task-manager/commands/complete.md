@@ -163,9 +163,37 @@ Invalid/rejection responses:
 mv ~/.claude/task-manager/tasks/active/TASK-XXX-<slug> ~/.claude/task-manager/tasks/completed/
 ```
 
-#### 6.5 Update Index
+#### 6.5 Update State
 
-Edit `~/.claude/task-manager/tasks/index.md`:
+Following state-management skill protocol:
+
+```bash
+# 1. Backup state
+Copy: state.json → state.backup.json
+
+# 2. Find and move task from active to completed
+task = state.tasks.active.find(t => t.id === "TASK-XXX")
+task.status = "completed"
+task.updated = "<YYYY-MM-DD>"
+task.completedAt = "<YYYY-MM-DD>"
+
+# Remove from active
+state.tasks.active = state.tasks.active.filter(t => t.id !== "TASK-XXX")
+
+# Add to completed
+state.tasks.completed.push(task)
+
+# Update timestamp
+state.lastUpdated = "<ISO-8601 timestamp>"
+
+# 3. Write state
+Write: ~/.claude/task-manager/state.json
+
+# 4. Verify write
+Read: ~/.claude/task-manager/state.json
+```
+
+Also update `~/.claude/task-manager/tasks/index.md` for human-readable reference:
 - Remove from "Aktif Tasklar" table
 - Add to "Son Tamamlanan Tasklar" table
 - Update "Son güncelleme" date

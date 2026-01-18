@@ -45,15 +45,19 @@ Extract from $ARGUMENTS:
 - `--from-jira <TICKET-ID>` OR
 - `--from-idea <idea-slug>`
 
-### Step 2: Determine Next Task ID
+### Step 2: Read State and Determine Next Task ID
 
 ```bash
-# Find highest task number
-ls ~/.claude/task-manager/tasks/active/ ~/.claude/task-manager/tasks/completed/ 2>/dev/null | grep -E "^TASK-[0-9]+" | sort -t- -k2 -n | tail -1
+# Read current state
+Read: ~/.claude/task-manager/state.json
+
+# Extract nextTaskId
+NEXT_ID = state.nextTaskId
 ```
 
-Calculate: `NEXT_ID = highest + 1`
 Format: `TASK-XXX` (zero-padded to 3 digits)
+
+**IMPORTANT:** State must be backed up before any write operation. See state-management skill.
 
 ### Step 3: Gather Task Information
 
@@ -167,11 +171,37 @@ Use template from plugin's `templates/task.md` and fill variables:
 
 **IMPORTANT:** The `Current Position` section and `[NEXT]` markers are critical for session recovery. Claude MUST update these after every significant step.
 
-### Step 6: Update Index
+### Step 6: Update State
 
-Edit `~/.claude/task-manager/tasks/index.md`:
-- Add new task to "Aktif Tasklar" table
-- Update "Son güncelleme" date
+Following state-management skill protocol:
+
+```bash
+# 1. Backup current state
+Copy: state.json → state.backup.json
+
+# 2. Update state
+state.tasks.active.push({
+  "id": "TASK-XXX",
+  "slug": "<slug>",
+  "title": "<title>",
+  "status": "pending",
+  "created": "<YYYY-MM-DD>",
+  "updated": "<YYYY-MM-DD>",
+  "source": "manual | jira:<TICKET-ID> | idea:<slug>"
+})
+
+state.nextTaskId = state.nextTaskId + 1
+state.lastUpdated = "<ISO-8601 timestamp>"
+
+# 3. Write state
+Write: ~/.claude/task-manager/state.json
+
+# 4. Verify write
+Read: ~/.claude/task-manager/state.json
+# Confirm JSON is valid
+```
+
+Also update `~/.claude/task-manager/tasks/index.md` for human-readable reference.
 
 ### Step 7: Update Idea (if from-idea)
 
@@ -199,6 +229,8 @@ Next steps:
 
 ```
 PLUGIN_DATA: ~/.claude/task-manager/
+STATE_FILE: ~/.claude/task-manager/state.json
+STATE_BACKUP: ~/.claude/task-manager/state.backup.json
 TASK_ROOT: ~/.claude/task-manager/tasks/
 ACTIVE_DIR: ~/.claude/task-manager/tasks/active/
 COMPLETED_DIR: ~/.claude/task-manager/tasks/completed/

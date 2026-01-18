@@ -51,31 +51,47 @@ From $ARGUMENTS extract:
 
 If `--detailed` NOT specified:
 
-#### 2.1 Read Current ideas.md
+#### 2.1 Read Current State
 
 ```bash
-Read: ~/.claude/task-manager/tasks/backlog/ideas.md
+Read: ~/.claude/task-manager/state.json
 ```
 
-#### 2.2 Append New Idea
+#### 2.2 Add Idea to State
 
-Add to the appropriate priority section:
+Following state-management skill protocol:
 
-```markdown
-### <PRIORITY> Priority
-- [ ] <title> (added: <current date>)
+```bash
+# 1. Backup state
+Copy: state.json → state.backup.json
+
+# 2. Generate idea ID
+nextIdeaNum = state.ideas.quick.length + 1
+ideaId = "idea-" + padStart(nextIdeaNum, 3, "0")
+
+# 3. Add idea to state
+state.ideas.quick.push({
+  "id": ideaId,
+  "title": "<title>",
+  "priority": "<high|medium|low>",
+  "added": "<YYYY-MM-DD>",
+  "description": "<brief description if provided>"
+})
+
+state.lastUpdated = "<ISO-8601 timestamp>"
+
+# 4. Write state
+Write: ~/.claude/task-manager/state.json
 ```
-
-If priority section doesn't exist, create it.
 
 #### 2.3 Output Confirmation
 
 ```markdown
 ## Idea Captured
 
+**ID:** <ideaId>
 **Title:** <title>
 **Priority:** <priority>
-**Location:** ~/.claude/task-manager/tasks/backlog/ideas.md
 
 Quick capture complete. Use `/task-manager:create --from-idea` when ready to work on it.
 ```
@@ -123,13 +139,32 @@ Use template from plugin's `templates/idea.md` and fill variables:
 
 Write to: `~/.claude/task-manager/tasks/backlog/<slug>.md`
 
-#### 3.3 Update ideas.md Reference
+#### 3.3 Update State with Detailed Idea
 
-Add reference in ideas.md:
+Following state-management skill protocol:
 
-```markdown
-### Detailed Ideas
-- [<title>](<slug>.md) - <priority> priority
+```bash
+# 1. Backup state
+Copy: state.json → state.backup.json
+
+# 2. Generate detailed idea ID
+nextDetailedNum = state.ideas.detailed.length + 1
+ideaId = "idea-d" + padStart(nextDetailedNum, 3, "0")
+
+# 3. Add detailed idea to state
+state.ideas.detailed.push({
+  "id": ideaId,
+  "slug": "<slug>",
+  "title": "<title>",
+  "priority": "<high|medium|low>",
+  "added": "<YYYY-MM-DD>",
+  "file": "<slug>.md"
+})
+
+state.lastUpdated = "<ISO-8601 timestamp>"
+
+# 4. Write state
+Write: ~/.claude/task-manager/state.json
 ```
 
 #### 3.4 Output Confirmation

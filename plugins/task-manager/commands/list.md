@@ -37,40 +37,32 @@ From $ARGUMENTS extract filter:
 - `--all` → Show everything
 - No argument → Show active tasks + ideas summary
 
-### Step 2: Read Data
+### Step 2: Read State
 
-Based on filter, read from:
+All data comes from state.json for fast retrieval:
 
 ```bash
-# Active tasks
-ls ~/.claude/task-manager/tasks/active/
-
-# Completed tasks
-ls ~/.claude/task-manager/tasks/completed/
-
-# Ideas
-Read: ~/.claude/task-manager/tasks/backlog/ideas.md
-ls ~/.claude/task-manager/tasks/backlog/*.md
+Read: ~/.claude/task-manager/state.json
 ```
 
-### Step 3: Extract Task Info
+### Step 3: Extract Task Info from State
 
-For each task directory, read task.md and extract:
-- ID
-- Title (from first heading)
-- Status (Durum field)
-- Last Updated (Son Güncelleme field)
+From `state.tasks.active`:
+- ID, slug, title, status, created, updated
 
-### Step 4: Extract Ideas Info
+From `state.tasks.completed`:
+- ID, slug, title, status, completedAt
 
-From `ideas.md`, extract:
-- Priority sections (HIGH, MEDIUM, LOW)
-- Idea titles and dates
+From `state.tasks.cancelled`:
+- ID, slug, title, cancelledAt
 
-From individual idea files (`*.md` except ideas.md and README.md):
-- Title
-- Priority
-- Date
+### Step 4: Extract Ideas Info from State
+
+From `state.ideas.quick`:
+- ID, title, priority, added, description
+
+From `state.ideas.detailed`:
+- ID, slug, title, priority, added, file
 
 ### Step 5: Output Results
 

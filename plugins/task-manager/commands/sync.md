@@ -1,16 +1,16 @@
 ---
-description: Synchronize ~/.claude/task-manager/tasks/index.md with actual task folders
-argument-hint: [--dry-run] [--fix]
+description: Synchronize state.json with actual task folders
+argument-hint: [--dry-run] [--fix] [--rebuild]
 ---
 
 # Task Sync Workflow
 
-Version: 1.0.0
-Last Updated: 2025-01-18
+Version: 1.1.0
+Last Updated: 2025-01-19
 
 ## Purpose
 
-Ensure `~/.claude/task-manager/tasks/index.md` is synchronized with the actual task folders in `~/.claude/task-manager/tasks/active/`, `~/.claude/task-manager/tasks/completed/`, and `~/.claude/task-manager/tasks/cancelled/`. Detects discrepancies and optionally fixes them.
+Ensure `~/.claude/task-manager/state.json` is synchronized with the actual task folders in `~/.claude/task-manager/tasks/active/`, `~/.claude/task-manager/tasks/completed/`, and `~/.claude/task-manager/tasks/cancelled/`. Also updates `index.md` for human-readable reference. Detects discrepancies and optionally fixes them.
 
 ---
 
@@ -20,6 +20,7 @@ Ensure `~/.claude/task-manager/tasks/index.md` is synchronized with the actual t
 /task-manager:sync              # Check and report discrepancies
 /task-manager:sync --dry-run    # Same as default, just check
 /task-manager:sync --fix        # Automatically fix discrepancies
+/task-manager:sync --rebuild    # Full rebuild from disk (use if state.json corrupted)
 ```
 
 ---
@@ -39,26 +40,27 @@ COMPLETED_TASKS=$(ls -d ~/.claude/task-manager/tasks/completed/TASK-* 2>/dev/nul
 CANCELLED_TASKS=$(ls -d ~/.claude/task-manager/tasks/cancelled/TASK-* 2>/dev/null | xargs -n1 basename)
 ```
 
-### Step 2: Parse Current index.md
+### Step 2: Parse Current state.json
 
 ```bash
-Read: ~/.claude/task-manager/tasks/index.md
+Read: ~/.claude/task-manager/state.json
 ```
 
 Extract:
-- Tasks in "Aktif Tasklar" table
-- Tasks in "Son Tamamlanan Tasklar" table
-- Tasks in "İptal Edilen Tasklar" table
+- Tasks in `state.tasks.active`
+- Tasks in `state.tasks.completed`
+- Tasks in `state.tasks.cancelled`
+- Ideas in `state.ideas.quick` and `state.ideas.detailed`
 
 ### Step 3: Compare and Detect Discrepancies
 
 | Discrepancy Type | Description |
 |------------------|-------------|
-| `MISSING_IN_INDEX` | Task folder exists but not in index |
-| `ORPHAN_IN_INDEX` | Task in index but folder doesn't exist |
+| `MISSING_IN_STATE` | Task folder exists but not in state.json |
+| `ORPHAN_IN_STATE` | Task in state but folder doesn't exist |
 | `WRONG_SECTION` | Task in wrong section (e.g., completed task in active) |
-| `STALE_STATUS` | Task status in index doesn't match task.md |
-| `MISSING_LINK` | Link in index is broken |
+| `STALE_STATUS` | Task status in state doesn't match task.md |
+| `ID_MISMATCH` | nextTaskId doesn't match highest existing ID |
 
 ### Step 4: Read Task Details
 
@@ -74,40 +76,40 @@ For each detected task folder, read task.md to get:
 ## Task Sync Report
 
 **Scan Time:** <current datetime>
-**Index File:** ~/.claude/task-manager/tasks/index.md
+**State File:** ~/.claude/task-manager/state.json
 
 ### Summary
 | Category | Count |
 |----------|-------|
 | Active Tasks (folders) | X |
-| Active Tasks (index) | Y |
+| Active Tasks (state) | Y |
 | Completed Tasks (folders) | A |
-| Completed Tasks (index) | B |
+| Completed Tasks (state) | B |
 | Discrepancies Found | N |
 
 ### Discrepancies
 
-#### Missing in Index
-Tasks that exist in folders but not in index:
+#### Missing in State
+Tasks that exist in folders but not in state.json:
 | Task | Location | Status |
 |------|----------|--------|
 | TASK-012 | ~/.claude/task-manager/tasks/active/TASK-012-new-feature/ | pending |
 
-#### Orphaned in Index
-Tasks in index but folders don't exist:
-| Task | Index Section | Expected Location |
+#### Orphaned in State
+Tasks in state but folders don't exist:
+| Task | State Section | Expected Location |
 |------|---------------|-------------------|
-| TASK-999 | Aktif Tasklar | ~/.claude/task-manager/tasks/active/TASK-999-*/ |
+| TASK-999 | tasks.active | ~/.claude/task-manager/tasks/active/TASK-999-*/ |
 
 #### Wrong Section
-Tasks in wrong index section:
+Tasks in wrong state section:
 | Task | Current Section | Correct Section |
 |------|-----------------|-----------------|
-| TASK-008 | Aktif Tasklar | Son Tamamlanan |
+| TASK-008 | tasks.active | tasks.completed |
 
 #### Status Mismatch
-Tasks with stale status in index:
-| Task | Index Status | Actual Status |
+Tasks with stale status in state:
+| Task | State Status | Actual Status |
 |------|--------------|---------------|
 | TASK-007 | pending | in_progress |
 
@@ -115,9 +117,9 @@ Tasks with stale status in index:
 
 ### Recommended Actions
 
-1. Add TASK-012 to Aktif Tasklar
-2. Remove TASK-999 from index (orphan)
-3. Move TASK-008 to Son Tamamlanan
+1. Add TASK-012 to state.tasks.active
+2. Remove TASK-999 from state (orphan)
+3. Move TASK-008 to state.tasks.completed
 4. Update TASK-007 status to in_progress
 
 Run `/task-manager:sync --fix` to apply these changes automatically.
@@ -127,33 +129,74 @@ Run `/task-manager:sync --fix` to apply these changes automatically.
 
 If `--fix` flag provided:
 
+Following state-management skill protocol:
+
+```bash
+# 1. Backup state
+Copy: state.json → state.backup.json
+```
+
 #### 6.1 Add Missing Tasks
 
-For each `MISSING_IN_INDEX`:
+For each `MISSING_IN_STATE`:
 - Read task.md for details
-- Add to appropriate section in index.md
+- Add to appropriate array in state.tasks
 
 #### 6.2 Remove Orphans
 
-For each `ORPHAN_IN_INDEX`:
-- Remove row from index.md
+For each `ORPHAN_IN_STATE`:
+- Remove from state.tasks array
 - Note: Does NOT delete folders (safe operation)
 
 #### 6.3 Move Wrong Section
 
 For each `WRONG_SECTION`:
-- Remove from current section
-- Add to correct section
+- Remove from current array
+- Add to correct array
 
 #### 6.4 Update Status
 
 For each `STALE_STATUS`:
-- Update status field in index row
+- Update status field in state object
 
-#### 6.5 Update Timestamp
+#### 6.5 Fix nextTaskId
 
-```markdown
-Son güncelleme: <current date>
+If ID_MISMATCH detected:
+- Set nextTaskId to highest existing ID + 1
+
+#### 6.6 Write State and Index
+
+```bash
+# Update state
+state.lastUpdated = "<ISO-8601 timestamp>"
+Write: ~/.claude/task-manager/state.json
+
+# Also regenerate index.md for human reference
+Write: ~/.claude/task-manager/tasks/index.md
+```
+
+### Step 6b: Rebuild Mode (if --rebuild)
+
+If `--rebuild` flag provided (for corrupted state):
+
+```bash
+# Create fresh state from disk
+state = {
+  "version": "1.0.0",
+  "lastUpdated": "<now>",
+  "nextTaskId": <calculated from highest ID + 1>,
+  "tasks": {
+    "active": [<scan active/ folder>],
+    "completed": [<scan completed/ folder>],
+    "cancelled": [<scan cancelled/ folder>]
+  },
+  "ideas": {
+    "quick": [],
+    "detailed": [<scan backlog/ folder>]
+  }
+}
+
+Write: ~/.claude/task-manager/state.json
 ```
 
 ### Step 7: Output Result
@@ -214,9 +257,10 @@ Son güncelleme: YYYY-MM-DD
 
 | Scenario | Action |
 |----------|--------|
-| index.md doesn't exist | Create from scratch with current folders |
+| state.json doesn't exist | Create from scratch with --rebuild |
+| state.json corrupted | Try state.backup.json, else --rebuild |
 | Task folder has no task.md | Skip, report as warning |
-| index.md is malformed | Backup and regenerate |
+| state.json malformed | Backup and regenerate with --rebuild |
 | Permission error | Report and stop |
 
 ---
@@ -228,17 +272,17 @@ User: /task-manager:sync
 
 ## Task Sync Report
 
-**Scan Time:** 2025-01-18 23:55:00
-**Index File:** ~/.claude/task-manager/tasks/index.md
+**Scan Time:** 2025-01-19 10:00:00
+**State File:** ~/.claude/task-manager/state.json
 
 ### Summary
 | Category | Count |
 |----------|-------|
-| Active Tasks (folders) | 7 |
-| Active Tasks (index) | 7 |
-| Completed Tasks (folders) | 4 |
-| Completed Tasks (index) | 4 |
+| Active Tasks (folders) | 6 |
+| Active Tasks (state) | 6 |
+| Completed Tasks (folders) | 6 |
+| Completed Tasks (state) | 6 |
 | Discrepancies Found | 0 |
 
-Index is synchronized. No action needed.
+State is synchronized. No action needed.
 ```

@@ -35,18 +35,32 @@ Extract TASK-ID from $ARGUMENTS:
 - If full folder name given, extract ID portion
 - Validate format: `TASK-XXX` where XXX is numeric
 
-### Step 2: Locate Task
+### Step 2: Locate Task via State
 
 ```bash
-# Search in active first, then completed (for reference)
-TASK_DIR=$(ls -d ~/.claude/task-manager/tasks/active/TASK-XXX-* 2>/dev/null | head -1)
+# Read state.json for fast lookup
+Read: ~/.claude/task-manager/state.json
 
-if [ -z "$TASK_DIR" ]; then
-  TASK_DIR=$(ls -d ~/.claude/task-manager/tasks/completed/TASK-XXX-* 2>/dev/null | head -1)
-  TASK_STATUS="completed"
-else
-  TASK_STATUS="active"
-fi
+# Search in state.tasks.active first
+task = state.tasks.active.find(t => t.id === "TASK-XXX")
+if (task) {
+  TASK_STATUS = "active"
+  TASK_DIR = ~/.claude/task-manager/tasks/active/TASK-XXX-<task.slug>/
+}
+
+# If not found, check completed
+if (!task) {
+  task = state.tasks.completed.find(t => t.id === "TASK-XXX")
+  if (task) {
+    TASK_STATUS = "completed"
+    TASK_DIR = ~/.claude/task-manager/tasks/completed/TASK-XXX-<task.slug>/
+  }
+}
+
+# Fallback to filesystem if not in state
+if (!task) {
+  TASK_DIR=$(ls -d ~/.claude/task-manager/tasks/active/TASK-XXX-* 2>/dev/null | head -1)
+}
 ```
 
 ### Step 3: Read Task Context
@@ -105,9 +119,26 @@ Based on analysis:
 If task was `pending`, update to `in_progress`:
 
 ```bash
+# Update task.md
 Edit: <TASK_DIR>/task.md
 Change: "- **Durum:** pending" to "- **Durum:** in_progress"
 Update: "- **Son Güncelleme:** <current datetime>"
+```
+
+**Also update state.json:**
+
+```bash
+# 1. Backup state
+Copy: state.json → state.backup.json
+
+# 2. Update task status in state
+task = state.tasks.active.find(t => t.id === "TASK-XXX")
+task.status = "in_progress"
+task.updated = "<YYYY-MM-DD>"
+state.lastUpdated = "<ISO-8601 timestamp>"
+
+# 3. Write state
+Write: ~/.claude/task-manager/state.json
 ```
 
 ### Step 8: Add Progress Note
