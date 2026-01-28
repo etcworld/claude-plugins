@@ -21,6 +21,20 @@ claude plugin marketplace add etcworld/claude-plugins
 claude plugin install task-manager@etcworld-plugins
 ```
 
+## Updating
+
+```bash
+# Update plugin to latest version
+/plugins update task-manager
+```
+
+If update doesn't work (cache issue):
+
+```bash
+claude plugin marketplace remove etcworld-plugins
+claude plugin marketplace add etcworld/claude-plugins
+```
+
 ## Data Location
 
 All task data is stored in `~/.claude/task-manager/` - **not in your project directory**.

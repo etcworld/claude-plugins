@@ -6,7 +6,7 @@ A collection of Claude Code plugins by etcworld.
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [task-manager](./plugins/task-manager) | AI task lifecycle management with session continuity | 1.0.0 |
+| [task-manager](./plugins/task-manager) | AI task lifecycle management with session continuity | 1.2.1 |
 
 ## Installation
 
@@ -20,6 +20,33 @@ claude plugin marketplace add etcworld/claude-plugins
 
 ```bash
 # Install task-manager
+claude plugin install task-manager@etcworld-plugins
+```
+
+## Updating
+
+### Update Plugins
+
+```bash
+# Update specific plugin
+/plugins update task-manager
+
+# Update all plugins from all marketplaces
+/plugins update
+```
+
+### Cache Issues
+
+If `/plugins update` doesn't fetch the latest version, the marketplace cache may be stale. Remove and re-add the marketplace:
+
+```bash
+claude plugin marketplace remove etcworld-plugins
+claude plugin marketplace add etcworld/claude-plugins
+```
+
+Then reinstall plugins if needed:
+
+```bash
 claude plugin install task-manager@etcworld-plugins
 ```
 
