@@ -1,0 +1,27 @@
+{
+  "description": "Task checkpoint hooks for tracking progress",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|Bash|LSP",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/checkpoint-reminder.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/checkpoint-reset.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

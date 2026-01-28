@@ -1,6 +1,6 @@
 {
   "name": "task-manager",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AI task lifecycle management with session continuity",
   "author": {
     "name": "etcworld",
@@ -11,27 +11,5 @@
   "license": "MIT",
   "keywords": ["task-management", "productivity", "session-continuity"],
   "commands": "./commands",
-  "skills": "./skills",
-  "hooks": {
-    "PostToolCall": [
-      {
-        "matcher": {
-          "tool_name": "^(Read|Grep|Glob|Bash|LSP)$"
-        },
-        "command": ["bash", "-c", "$PLUGIN_DIR/../hooks/checkpoint-reminder.sh"],
-        "onOutput": {
-          "CHECKPOINT_REMINDER": {
-            "postMessage": "[CHECKPOINT REMINDER] You've made several tool calls. If working on a task, update task.md with current progress now. Format: ### YYYY-MM-DD HH:MM\n- [COMPLETED] ...\n- [NEXT] ..."
-          }
-        }
-      },
-      {
-        "matcher": {
-          "tool_name": "^Edit$",
-          "file_path": ".*/task\\.md$"
-        },
-        "command": ["bash", "-c", "$PLUGIN_DIR/../hooks/checkpoint-reset.sh"]
-      }
-    ]
-  }
+  "skills": "./skills"
 }

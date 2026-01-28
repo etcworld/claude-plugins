@@ -31,5 +31,9 @@ echo "$COUNT" > "$COUNTER_FILE"
 
 # Only output reminder if there's an active task and we hit the interval
 if has_active_task && [ $((COUNT % CHECKPOINT_INTERVAL)) -eq 0 ]; then
-    echo "CHECKPOINT_REMINDER"
+    # Exit code 2 with stderr message feeds back to Claude
+    echo "[CHECKPOINT REMINDER] You've made several tool calls. If working on a task, update task.md with current progress now. Format: ### YYYY-MM-DD HH:MM - [COMPLETED] ... - [NEXT] ..." >&2
+    exit 2
 fi
+
+exit 0
