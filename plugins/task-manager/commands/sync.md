@@ -10,7 +10,7 @@ Last Updated: 2025-01-19
 
 ## Purpose
 
-Ensure `~/.claude/task-manager/state.json` is synchronized with the actual task folders in `~/.claude/task-manager/tasks/active/`, `~/.claude/task-manager/tasks/completed/`, and `~/.claude/task-manager/tasks/cancelled/`. Also updates `index.md` for human-readable reference. Detects discrepancies and optionally fixes them.
+Ensure `~/.claude/task-manager/state.json` is synchronized with the actual task folders in `~/.claude/task-manager/tasks/active/`, `~/.claude/task-manager/tasks/completed/`, and `~/.claude/task-manager/tasks/cancelled/`. Detects discrepancies and optionally fixes them.
 
 ---
 
@@ -164,15 +164,12 @@ For each `STALE_STATUS`:
 If ID_MISMATCH detected:
 - Set nextTaskId to highest existing ID + 1
 
-#### 6.6 Write State and Index
+#### 6.6 Write State
 
 ```bash
 # Update state
 state.lastUpdated = "<ISO-8601 timestamp>"
 Write: ~/.claude/task-manager/state.json
-
-# Also regenerate index.md for human reference
-Write: ~/.claude/task-manager/tasks/index.md
 ```
 
 ### Step 6b: Rebuild Mode (if --rebuild)
@@ -219,36 +216,6 @@ Found X discrepancies. Run `/task-manager:sync --fix` to resolve.
 - Updated 3 task statuses
 
 Index is now synchronized with task folders.
-```
-
----
-
-## Index Format Reference
-
-The index.md should follow this structure:
-
-```markdown
-# Task Index
-
-Son güncelleme: YYYY-MM-DD
-
-## Aktif Tasklar
-| ID | Başlık | Durum | Oluşturulma | Link |
-|----|--------|-------|-------------|------|
-| TASK-001 | Title | status | YYYY-MM-DD | [link](active/TASK-001-.../task.md) |
-
-## Son Tamamlanan Tasklar
-| ID | Başlık | Tamamlanma | Link |
-|----|--------|------------|------|
-| TASK-005 | Title | YYYY-MM-DD | [link](completed/TASK-005-.../task.md) |
-
-## İptal Edilen Tasklar
-| ID | Başlık | İptal Tarihi | Sebep | Link |
-|----|--------|--------------|-------|------|
-| - | - | - | - | - |
-
----
-**Not:** Bu dosya Claude tarafından otomatik güncellenir.
 ```
 
 ---

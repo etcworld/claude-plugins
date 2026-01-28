@@ -8,7 +8,8 @@ This plugin provides a complete task management system that:
 - Creates and tracks tasks from various sources (manual, Jira, ideas)
 - Enables session continuity across Claude Code sessions
 - Archives completed tasks with full history
-- Syncs task index with actual folder structure
+- Enforces **single active task** (only one `in_progress` at a time)
+- Auto-checkpoints to prevent context loss
 
 ## Installation
 
@@ -38,10 +39,12 @@ The plugin automatically creates the directory structure on first use.
 | `/task-manager:create` | Create a new task from title, Jira ticket, or idea |
 | `/task-manager:continue` | Resume work on an existing task |
 | `/task-manager:complete` | Complete a task with user approval and archive it |
+| `/task-manager:checkpoint` | Manually save checkpoint for current task |
 | `/task-manager:subtask` | Manage subtasks (add, list, done, status) |
 | `/task-manager:idea` | Quick capture an idea to backlog |
-| `/task-manager:sync` | Synchronize index with task folders |
 | `/task-manager:list` | List tasks and ideas |
+| `/task-manager:sync` | Synchronize state with task folders |
+| `/task-manager:protocol` | Reminder of working protocol |
 
 ## Skills
 
@@ -52,14 +55,26 @@ The `task-lifecycle` skill automatically activates when you mention:
 
 This provides seamless session continuity without explicit commands.
 
+## Automatic Checkpoint Reminders
+
+The plugin includes hooks that automatically remind Claude to checkpoint:
+
+- **Every 5 tool calls** → Checkpoint reminder injected
+- **When task.md edited** → Counter resets (checkpoint detected)
+- **Only when active task exists** → No noise when not working on tasks
+
+Hooks are automatically configured via `plugin.json` - no manual setup required.
+
+See `hooks/README.md` for configuration options.
+
 ## Directory Structure
 
 All data is stored in `~/.claude/task-manager/`:
 
 ```
 ~/.claude/task-manager/
+├── state.json             # Task state (source of truth)
 └── tasks/
-    ├── index.md           # Task index (auto-managed)
     ├── active/            # Active tasks
     │   └── TASK-XXX-slug/
     │       ├── task.md    # Task details
@@ -200,7 +215,6 @@ All data is stored in `~/.claude/task-manager/`:
 ### Jira Integration
 - Import tasks directly from Jira tickets
 - Maintains link to source ticket
-- Syncs with `/ai-developer` workflow
 
 ### Idea Backlog
 - Quick capture mode for fast idea logging
@@ -208,9 +222,9 @@ All data is stored in `~/.claude/task-manager/`:
 - Priority levels (HIGH/MEDIUM/LOW)
 - Easy conversion to active tasks
 
-### Index Management
-- Automatic index synchronization
-- Detects discrepancies between folders and index
+### State Management
+- Automatic state.json synchronization
+- Detects discrepancies between folders and state
 - Safe operations (never deletes folders)
 
 ## Requirements

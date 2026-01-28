@@ -5,12 +5,29 @@ argument-hint: <TASK-ID>
 
 # Task Continue Workflow
 
-Version: 1.0.0
-Last Updated: 2025-01-18
+Version: 1.1.0
+Last Updated: 2026-01-28
 
 ## Purpose
 
 Resume work on an existing task by reading its current state, understanding progress, and continuing from where it left off. This enables session continuity across Claude Code sessions.
+
+**IMPORTANT:** Only ONE task can be `in_progress` at a time. When switching to a new task, the current in_progress task is automatically set to `paused`.
+
+---
+
+## Task Status Flow
+
+```
+pending → in_progress → completed
+            ↓    ↑
+          paused
+```
+
+- `pending` - Not started yet
+- `in_progress` - Currently active (only ONE allowed)
+- `paused` - Was in_progress, switched to another task
+- `completed` - Done
 
 ---
 
@@ -112,16 +129,39 @@ Based on analysis:
 | Task is `waiting_approval` | Ask user to approve or provide feedback |
 | Task is `in_progress` with incomplete subtasks | Continue from first incomplete subtask |
 | Task is `pending` | Start from beginning of plan |
-| Has Jira source | Consider running `/ai-developer <JIRA-ID>` |
 
-### Step 7: Update Task Status
+### Step 7: Pause Current In-Progress Task (if any)
 
-If task was `pending`, update to `in_progress`:
+**CRITICAL:** Only one task can be `in_progress` at a time.
+
+```bash
+# Check for existing in_progress task
+current_task = state.tasks.active.find(t => t.status === "in_progress")
+
+if (current_task && current_task.id !== "TASK-XXX") {
+  # Pause the current task
+  current_task.status = "paused"
+  current_task.updated = "<YYYY-MM-DD>"
+
+  # Update its task.md
+  Edit: ~/.claude/task-manager/tasks/active/<current_task folder>/task.md
+  Change: "- **Durum:** in_progress" to "- **Durum:** paused"
+
+  # Notify user
+  Output: "**Note:** TASK-YYY paused (was in_progress)"
+}
+```
+
+### Step 8: Update Task Status
+
+If task was `pending` or `paused`, update to `in_progress`:
 
 ```bash
 # Update task.md
 Edit: <TASK_DIR>/task.md
 Change: "- **Durum:** pending" to "- **Durum:** in_progress"
+# OR
+Change: "- **Durum:** paused" to "- **Durum:** in_progress"
 Update: "- **Son Güncelleme:** <current datetime>"
 ```
 
@@ -141,7 +181,7 @@ state.lastUpdated = "<ISO-8601 timestamp>"
 Write: ~/.claude/task-manager/state.json
 ```
 
-### Step 8: Add Progress Note
+### Step 9: Add Progress Note
 
 Append to İlerleme Notları section:
 
@@ -151,7 +191,7 @@ Append to İlerleme Notları section:
 - Current focus: <next incomplete item>
 ```
 
-### Step 9: Output Summary
+### Step 10: Output Summary
 
 ```markdown
 ## Task Resumed: TASK-XXX
@@ -250,21 +290,8 @@ If task.md contains `Kaynak: jira:<TICKET-ID>`:
 ```markdown
 ### Jira Integration
 This task is linked to **<TICKET-ID>**.
-
-Options:
-1. Continue manually with this task
-2. Run `/ai-developer <TICKET-ID>` for automated development workflow
+You can check the Jira ticket for additional context.
 ```
-
-### Tasks with Plan Files
-
-If `~/.claude/task-manager/tasks/<TICKET-ID>/plan.md` exists (from ai-developer):
-
-```bash
-Read: ~/.claude/task-manager/tasks/<TICKET-ID>/plan.md
-```
-
-Check "Phase Progress" section for resume point per ai-developer Resume Protocol.
 
 ### Completed Tasks
 

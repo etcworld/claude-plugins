@@ -112,7 +112,7 @@ Please complete these items first, or use `/task-manager:complete TASK-XXX --for
 This will:
 1. Mark task as `completed`
 2. Move to `~/.claude/task-manager/tasks/completed/`
-3. Update `~/.claude/task-manager/tasks/index.md`
+3. Update state.json
 
 Reply with:
 - **yes/approve/tamam** - Complete the task
@@ -192,11 +192,6 @@ Write: ~/.claude/task-manager/state.json
 # 4. Verify write
 Read: ~/.claude/task-manager/state.json
 ```
-
-Also update `~/.claude/task-manager/tasks/index.md` for human-readable reference:
-- Remove from "Aktif Tasklar" table
-- Add to "Son Tamamlanan Tasklar" table
-- Update "Son güncelleme" date
 
 ### Step 7: Output Confirmation
 

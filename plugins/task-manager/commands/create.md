@@ -201,8 +201,6 @@ Read: ~/.claude/task-manager/state.json
 # Confirm JSON is valid
 ```
 
-Also update `~/.claude/task-manager/tasks/index.md` for human-readable reference.
-
 ### Step 7: Update Idea (if from-idea)
 
 Edit `~/.claude/task-manager/tasks/backlog/<idea-slug>.md`:
@@ -220,7 +218,6 @@ Edit `~/.claude/task-manager/tasks/backlog/<idea-slug>.md`:
 
 Next steps:
 - Run `/task-manager:continue TASK-XXX` to start working on this task
-- Or run `/ai-developer <JIRA-ID>` if this is a Jira-linked development task
 ```
 
 ---
@@ -236,7 +233,6 @@ ACTIVE_DIR: ~/.claude/task-manager/tasks/active/
 COMPLETED_DIR: ~/.claude/task-manager/tasks/completed/
 BACKLOG_DIR: ~/.claude/task-manager/tasks/backlog/
 TEMPLATE_DIR: ~/.claude/task-manager/tasks/templates/
-INDEX_FILE: ~/.claude/task-manager/tasks/index.md
 ```
 
 **Note:** All paths are relative to user's home directory, not the current project.

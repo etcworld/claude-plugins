@@ -46,7 +46,7 @@ Manages the `state.json` file that stores all task and idea metadata.
   "id": "TASK-XXX",
   "slug": "task-slug",
   "title": "Task Title",
-  "status": "pending|in_progress|waiting_approval|completed|cancelled",
+  "status": "pending|in_progress|paused|waiting_approval|completed|cancelled",
   "created": "YYYY-MM-DD",
   "updated": "YYYY-MM-DD",
   "completedAt": "YYYY-MM-DD (optional)",
@@ -54,6 +54,19 @@ Manages the `state.json` file that stores all task and idea metadata.
   "source": "manual|jira:XXX|idea:slug (optional)"
 }
 ```
+
+### Status Definitions
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Task created but not started |
+| `in_progress` | **Currently active** (max ONE at a time) |
+| `paused` | Was in_progress, switched to another task |
+| `waiting_approval` | Waiting for user approval |
+| `completed` | Task finished and archived |
+| `cancelled` | Task cancelled |
+
+**CONSTRAINT:** Only ONE task can have `status: "in_progress"` at any time.
 
 ### QuickIdeaObject Schema
 
@@ -118,6 +131,7 @@ Before writing, check:
 - [ ] Required fields exist on all objects
 - [ ] Status values are valid enum values
 - [ ] Dates are valid YYYY-MM-DD format
+- [ ] **Only ONE task has status `in_progress`** (critical constraint)
 
 ---
 
